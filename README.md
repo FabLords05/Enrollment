@@ -1,4 +1,3 @@
-```markdown
 # Enrollment Management System (EMS)
 
 A full-stack university enrollment application built with **React (Vite + TypeScript)** on the frontend and **Django REST Framework** on the backend.
@@ -135,7 +134,3 @@ The terminal will generate a local link, typically: **`http://localhost:5173/`**
 * **Circular Import / Crash on Startup:** If Django throws a dependency loop error, ensure you are running python 3.11+ and that all files match the latest repository pull.
 * **White Screen on Frontend:** If a dashboard tab turns completely white, right-click the screen, hit **Inspect -> Console**, and check for missing API data fields or unassigned student parameters.
 * **CORS Blocked Errors:** Ensure `django-cors-headers` is listed under `INSTALLED_APPS` and `MIDDLEWARE` in your backend `settings.py`, and your `CORS_ALLOWED_ORIGINS` includes `http://localhost:5173`.
-
-```
-
-```
