@@ -59,6 +59,10 @@ class StudentProfile(models.Model):
     program_enrolled = models.CharField(max_length=100, blank=True, null=True)
     year_level = models.IntegerField(default=1)
     enrollment_status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ADVISING')
+    
+    # 🟢 ADD THESE TWO NEW FIELDS
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    section = models.ForeignKey('scheduling.Section', on_delete=models.SET_NULL, null=True, blank=True, related_name='students')
 
     def __str__(self):
         return f"Student: {self.user.email}"

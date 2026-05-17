@@ -46,22 +46,22 @@ class SectionViewSet(viewsets.ModelViewSet):
     queryset = Section.objects.all()
     serializer_class = SectionSerializer
     # Example: Only Admins and Registrars can mess with sections!
-    permission_classes = [IsAuthenticated, IsAdminUserRole | IsRegistrar]
+    permission_classes = [IsAuthenticated, IsAdminUserRole | IsRegistrar | IsStudent]  # You can adjust this as needed
 
 class InstructorViewSet(viewsets.ModelViewSet):
     queryset = Instructor.objects.all()
     serializer_class = InstructorSerializer
-    permission_classes = [IsAuthenticated, IsAdminUserRole | IsRegistrar]
+    permission_classes = [IsAuthenticated, IsAdminUserRole | IsRegistrar | IsStudent]  # Adjust as needed
 
 class SubjectViewSet(viewsets.ModelViewSet):
     queryset = Subject.objects.all()
     serializer_class = SubjectSerializer
-    permission_classes = [IsAuthenticated, IsAdminUserRole | IsRegistrar]
+    permission_classes = [IsAuthenticated, IsAdminUserRole | IsRegistrar | IsStudent]  # Adjust as needed
 
 class StudentProfileViewSet(viewsets.ModelViewSet):
     queryset = StudentProfile.objects.all()
     serializer_class = StudentProfileSerializer
-    permission_classes = [IsAuthenticated, IsAdminUserRole | IsRegistrar]
+    permission_classes = [IsAuthenticated, IsAdminUserRole | IsRegistrar | IsStudent]
 
 class ChangeRequestViewSet(viewsets.ModelViewSet):
     queryset = ChangeRequest.objects.all()

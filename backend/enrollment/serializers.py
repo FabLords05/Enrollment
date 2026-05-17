@@ -31,7 +31,7 @@ class SubjectSerializer(serializers.ModelSerializer):
 
 class StudentProfileSerializer(serializers.ModelSerializer):
     # Map fields directly from the nested BaseUser account
-    email = serializers.EmailField(source='user.email')
+    email = serializers.EmailField(source='user.email', required=False)
     first_name = serializers.CharField(source='user.first_name', required=False, allow_blank=True)
     last_name = serializers.CharField(source='user.last_name', required=False, allow_blank=True)
 
@@ -45,27 +45,24 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             'year_level', 
             'enrollment_status', 
             'first_name', 
-            'last_name'
+            'last_name',
+            'phone',     # 🟢 Added
+            'section'    # 🟢 Added
         ]
 
     def create(self, validated_data):
-        """Handles creating a new student from the Admin Panel"""
-        user_data = validated_data.pop('user')
+        user_data = validated_data.pop('user', {})
         password = self.context['request'].data.get('password', 'student123')
         
-        # Create the base user account
         user = BaseUser.objects.create_user(
-            email=user_data['email'],
+            email=user_data.get('email'),
             first_name=user_data.get('first_name', ''),
             last_name=user_data.get('last_name', ''),
             role='STUDENT',
             password=password
         )
         
-        # Profile is created via signals, so grab it
         profile = user.student_profile
-        
-        # Save any academic-specific fields
         for attr, value in validated_data.items():
             setattr(profile, attr, value)
         profile.save()
@@ -73,22 +70,18 @@ class StudentProfileSerializer(serializers.ModelSerializer):
         return profile
 
     def update(self, instance, validated_data):
-        """Handles editing an existing student from the Admin Panel"""
         user_data = validated_data.pop('user', {})
         user = instance.user
         
-        # Update User model fields
         for attr, value in user_data.items():
             setattr(user, attr, value)
         user.save()
         
-        # Update StudentProfile model fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
         
         return instance
-
 
 class ChangeRequestSerializer(serializers.ModelSerializer):
     student_name = serializers.SerializerMethodField()

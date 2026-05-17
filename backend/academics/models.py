@@ -39,4 +39,4 @@ class Subject(models.Model):
     instId = models.ForeignKey(Instructor, on_delete=models.SET_NULL, null=True, blank=True, related_name="subjects")
 
     def __str__(self):
-        return f"{self.nm} ({self.secId.nm})"
+        return f"{self.nm} ({self.secId.name})"  # 🟢 Fixed to match Section model

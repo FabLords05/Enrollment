@@ -28,7 +28,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (token) {
             try {
                 const decoded: any = jwtDecode(token);
-                setUser({ id: decoded.user_id, email: "user@placeholder.com", role: decoded.role || 'STUDENT' });
+                // 🟢 FIXED: Grab the real email from the token
+                setUser({ 
+                    id: decoded.user_id, 
+                    email: decoded.email, 
+                    role: decoded.role || 'STUDENT' 
+                });
             } catch (error) {
                 console.error("Invalid token");
                 localStorage.clear();
@@ -41,7 +46,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('access_token', access);
         localStorage.setItem('refresh_token', refresh);
         const decoded: any = jwtDecode(access);
-        setUser({ id: decoded.user_id, email: "user@placeholder.com", role: decoded.role || 'STUDENT' });
+        
+        // 🟢 FIXED: Grab the real email from the token
+        setUser({ 
+            id: decoded.user_id, 
+            email: decoded.email, 
+            role: decoded.role || 'STUDENT' 
+        });
     };
 
     const logout = () => {

@@ -1,0 +1,248 @@
+/**
+ * StudentSchedulePage.tsx  ─  BACKEND CONNECTED
+ * Drop into: frontend/src/pages/student/StudentSchedulePage.tsx
+ */
+
+import React, { useState, useEffect } from 'react';
+import api from '../../api/axiosSetup';
+
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const TIMES = ['7:00', '8:00', '9:00', '10:00', '11:00', '12:00', '1:00', '2:00', '3:00', '4:00', '5:00'];
+
+const GRID_START = 7;
+const GRID_END   = 18;
+const SLOT_H     = 56; // px per hour
+
+// A palette of Tailwind classes to cycle through for subjects
+const COLORS = [
+  'bg-blue-100 border-blue-300 text-blue-800',
+  'bg-purple-100 border-purple-300 text-purple-800',
+  'bg-green-100 border-green-300 text-green-800',
+  'bg-orange-100 border-orange-300 text-orange-800',
+  'bg-teal-100 border-teal-300 text-teal-800',
+  'bg-red-100 border-red-300 text-red-800',
+  'bg-yellow-100 border-yellow-300 text-yellow-800',
+];
+
+interface SubjectResponse {
+  id: number;
+  nm: string;
+  days: string;
+  st: string;
+  et: string;
+  room: string;
+}
+
+interface ScheduleEntry {
+  code: string;
+  name: string;
+  days: string[];
+  startHour: number;
+  endHour: number;
+  room: string;
+  color: string;
+}
+
+// Helper to convert "07:30 AM" to 7.5
+function timeStrToDecimal(timeStr: string): number {
+  if (!timeStr) return 7; 
+  const [time, period] = timeStr.trim().split(' ');
+  if (!time) return 7;
+  
+  let [hours, minutes] = time.split(':').map(Number);
+  
+  if (period?.toUpperCase() === 'PM' && hours !== 12) hours += 12;
+  if (period?.toUpperCase() === 'AM' && hours === 12) hours = 0;
+  
+  return hours + (minutes / 60);
+}
+
+// Helper to convert "MWF" or "TTh" to ['Mon', 'Wed', 'Fri']
+function parseDays(daysStr: string): string[] {
+  if (!daysStr) return [];
+  const d = daysStr.toUpperCase();
+  
+  if (d === 'MWF') return ['Mon', 'Wed', 'Fri'];
+  if (d === 'TTH') return ['Tue', 'Thu'];
+  
+  // Fallbacks for individual days
+  const days: string[] = [];
+  if (d.includes('M')) days.push('Mon');
+  if (d.includes('TUE') || (d.includes('T') && !d.includes('TH') && !d.includes('SAT'))) days.push('Tue');
+  if (d.includes('W')) days.push('Wed');
+  if (d.includes('TH')) days.push('Thu');
+  if (d.includes('F')) days.push('Fri');
+  if (d.includes('SAT')) days.push('Sat');
+  
+  return days;
+}
+
+export default function StudentSchedulePage() {
+  const [view, setView] = useState<'grid' | 'list'>('grid');
+  const [schedule, setSchedule] = useState<ScheduleEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchSchedule();
+  }, []);
+
+  const fetchSchedule = async () => {
+    try {
+      const response = await api.get<SubjectResponse[]>('subjects/');
+      
+      const mappedSchedule = response.data.map((subj, index) => {
+        const parts = subj.nm.split(' - ');
+        const code = parts[0];
+        const name = parts[1] || subj.nm;
+        
+        return {
+          code,
+          name,
+          days: parseDays(subj.days),
+          startHour: timeStrToDecimal(subj.st),
+          endHour: timeStrToDecimal(subj.et),
+          room: subj.room,
+          color: COLORS[index % COLORS.length]
+        };
+      });
+
+      setSchedule(mappedSchedule);
+    } catch (err) {
+      console.error("Failed to load schedule from Django", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="p-10 text-center text-gray-400 font-medium animate-pulse">Loading block schedule...</div>;
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-[15px] font-bold text-ustpDarkBlue">Weekly Schedule</h3>
+          <p className="text-[12px] text-gray-400">SY 2025–2026 · 1st Semester</p>
+        </div>
+        <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
+          {(['grid','list'] as const).map(v => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={`px-3 py-1.5 rounded-md text-[12px] font-semibold transition-colors ${
+                view === v ? 'bg-white text-ustpDarkBlue shadow-sm' : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              {v === 'grid' ? '⊞ Grid' : '☰ List'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {view === 'list' ? (
+        /* ── List View ── */
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-left text-[11px] text-gray-400 font-semibold uppercase tracking-wider">
+                  <th className="px-5 py-3">Code</th>
+                  <th className="px-5 py-3">Subject</th>
+                  <th className="px-5 py-3">Days</th>
+                  <th className="px-5 py-3">Time</th>
+                  <th className="px-5 py-3">Room</th>
+                </tr>
+              </thead>
+              <tbody>
+                {schedule.map((s, i) => {
+                  const startMins = (s.startHour % 1) * 60;
+                  const endMins = (s.endHour % 1) * 60;
+                  const formatTime = (h: number, m: number) => {
+                    const ampm = h >= 12 ? 'PM' : 'AM';
+                    const hr12 = Math.floor(h) > 12 ? Math.floor(h) - 12 : (Math.floor(h) === 0 ? 12 : Math.floor(h));
+                    return `${hr12}:${m === 0 ? '00' : m} ${ampm}`;
+                  };
+
+                  return (
+                    <tr key={i} className="border-t border-gray-100 hover:bg-gray-50">
+                      <td className="px-5 py-3 font-mono text-[12px] font-bold text-ustpBlue">{s.code}</td>
+                      <td className="px-5 py-3 text-gray-700">{s.name}</td>
+                      <td className="px-5 py-3 text-gray-500">{s.days.join(', ')}</td>
+                      <td className="px-5 py-3 text-gray-500 whitespace-nowrap">
+                        {formatTime(s.startHour, startMins)} – {formatTime(s.endHour, endMins)}
+                      </td>
+                      <td className="px-5 py-3 text-gray-500">{s.room}</td>
+                    </tr>
+                  );
+                })}
+                {schedule.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-5 py-8 text-center text-gray-400">No schedule assigned yet.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        /* ── Grid View ── */
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <div className="min-w-[640px]">
+              {/* Day headers */}
+              <div className="grid border-b border-gray-100" style={{ gridTemplateColumns: '52px repeat(6, 1fr)' }}>
+                <div className="py-2 text-[10px] text-gray-300 text-center">Time</div>
+                {DAYS.map(d => (
+                  <div key={d} className="py-2 text-[11px] font-bold text-ustpDarkBlue text-center border-l border-gray-100">{d}</div>
+                ))}
+              </div>
+              {/* Time grid */}
+              <div className="relative" style={{ height: (GRID_END - GRID_START) * SLOT_H }}>
+                {/* Hour lines */}
+                {TIMES.map((t, i) => (
+                  <div
+                    key={t}
+                    className="absolute left-0 right-0 border-t border-gray-100 flex items-start"
+                    style={{ top: i * SLOT_H }}
+                  >
+                    <span className="w-[52px] text-[10px] text-gray-300 pl-2 pt-0.5 shrink-0">{t}</span>
+                  </div>
+                ))}
+                {/* Day columns */}
+                {DAYS.map((day, di) => (
+                  <div
+                    key={day}
+                    className="absolute top-0 bottom-0 border-l border-gray-100"
+                    style={{ left: `calc(52px + ${di} * (100% - 52px) / 6)`, width: `calc((100% - 52px) / 6)` }}
+                  />
+                ))}
+                {/* Schedule blocks */}
+                {schedule.map((s) =>
+                  s.days.map(day => {
+                    const di = DAYS.indexOf(day);
+                    if (di < 0) return null;
+                    const top    = (s.startHour - GRID_START) * SLOT_H;
+                    const height = (s.endHour - s.startHour) * SLOT_H;
+                    const colW   = `calc((100% - 52px) / 6)`;
+                    const left   = `calc(52px + ${di} * ${colW})`;
+                    return (
+                      <div
+                        key={`${s.code}-${day}`}
+                        className={`absolute rounded-lg border text-[10px] font-bold px-1.5 py-1 overflow-hidden ${s.color}`}
+                        style={{ top, height: height - 2, left, width: colW, boxSizing: 'border-box', paddingRight: 4 }}
+                      >
+                        <div className="truncate">{s.code}</div>
+                        <div className="font-normal opacity-70 truncate">{s.room}</div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

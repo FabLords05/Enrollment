@@ -1,0 +1,134 @@
+.
+├── academics
+│   ├── admin.py
+│   ├── apps.py
+│   ├── __init__.py
+│   ├── migrations
+│   │   ├── 0001_initial.py
+│   │   ├── 0002_instructor_subject.py
+│   │   ├── __init__.py
+│   │   └── __pycache__
+│   │       ├── 0001_initial.cpython-311.pyc
+│   │       ├── 0002_instructor_subject.cpython-311.pyc
+│   │       └── __init__.cpython-311.pyc
+│   ├── models.py
+│   ├── __pycache__
+│   │   ├── admin.cpython-311.pyc
+│   │   ├── apps.cpython-311.pyc
+│   │   ├── __init__.cpython-311.pyc
+│   │   ├── models.cpython-311.pyc
+│   │   ├── serializers.cpython-311.pyc
+│   │   └── views.cpython-311.pyc
+│   ├── serializers.py
+│   ├── tests.py
+│   └── views.py
+├── accounts
+│   ├── admin.py
+│   ├── apps.py
+│   ├── __init__.py
+│   ├── managers.py
+│   ├── migrations
+│   │   ├── 0001_initial.py
+│   │   ├── 0002_changerequest.py
+│   │   ├── __init__.py
+│   │   └── __pycache__
+│   │       ├── 0001_initial.cpython-311.pyc
+│   │       ├── 0002_changerequest.cpython-311.pyc
+│   │       └── __init__.cpython-311.pyc
+│   ├── models.py
+│   ├── permissions.py
+│   ├── __pycache__
+│   │   ├── admin.cpython-311.pyc
+│   │   ├── apps.cpython-311.pyc
+│   │   ├── __init__.cpython-311.pyc
+│   │   ├── managers.cpython-311.pyc
+│   │   ├── models.cpython-311.pyc
+│   │   └── permissions.cpython-311.pyc
+│   ├── serializers.py
+│   ├── tests.py
+│   └── views.py
+├── backend.txt
+├── db.sqlite3
+├── ems_backend
+│   ├── asgi.py
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-311.pyc
+│   │   ├── settings.cpython-311.pyc
+│   │   ├── urls.cpython-311.pyc
+│   │   └── wsgi.cpython-311.pyc
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
+├── enrollment
+│   ├── admin.py
+│   ├── apps.py
+│   ├── __init__.py
+│   ├── migrations
+│   │   ├── 0001_initial.py
+│   │   ├── __init__.py
+│   │   └── __pycache__
+│   │       ├── 0001_initial.cpython-311.pyc
+│   │       └── __init__.cpython-311.pyc
+│   ├── models.py
+│   ├── __pycache__
+│   │   ├── admin.cpython-311.pyc
+│   │   ├── apps.cpython-311.pyc
+│   │   ├── __init__.cpython-311.pyc
+│   │   ├── models.cpython-311.pyc
+│   │   ├── serializers.cpython-311.pyc
+│   │   └── views.cpython-311.pyc
+│   ├── serializers.py
+│   ├── tests.py
+│   └── views.py
+├── finance
+│   ├── admin.py
+│   ├── apps.py
+│   ├── __init__.py
+│   ├── migrations
+│   │   ├── 0001_initial.py
+│   │   ├── __init__.py
+│   │   └── __pycache__
+│   │       ├── 0001_initial.cpython-311.pyc
+│   │       └── __init__.cpython-311.pyc
+│   ├── models.py
+│   ├── __pycache__
+│   │   ├── admin.cpython-311.pyc
+│   │   ├── apps.cpython-311.pyc
+│   │   ├── __init__.cpython-311.pyc
+│   │   └── models.cpython-311.pyc
+│   ├── serializers.py
+│   ├── tests.py
+│   └── views.py
+├── manage.py
+├── new.txt
+├── requirements.txt
+├── scheduling
+│   ├── admin.py
+│   ├── apps.py
+│   ├── __init__.py
+│   ├── management
+│   │   └── commands
+│   │       ├── __pycache__
+│   │       │   └── seed_schedule.cpython-311.pyc
+│   │       └── seed_schedule.py
+│   ├── migrations
+│   │   ├── 0001_initial.py
+│   │   ├── __init__.py
+│   │   └── __pycache__
+│   │       ├── 0001_initial.cpython-311.pyc
+│   │       └── __init__.cpython-311.pyc
+│   ├── models.py
+│   ├── __pycache__
+│   │   ├── admin.cpython-311.pyc
+│   │   ├── apps.cpython-311.pyc
+│   │   ├── __init__.cpython-311.pyc
+│   │   ├── models.cpython-311.pyc
+│   │   ├── serializers.cpython-311.pyc
+│   │   └── views.cpython-311.pyc
+│   ├── serializers.py
+│   ├── tests.py
+│   └── views.py
+└── seed_db.py
+
+26 directories, 106 files
