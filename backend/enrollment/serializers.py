@@ -7,6 +7,8 @@ from accounts.models import BaseUser, StudentProfile, ChangeRequest
 from scheduling.models import Section
 from academics.models import Instructor, Subject, Term
 from .models import EnrollmentRecord, EnrolledClass
+from .models import PaymentTransaction
+
 
 
 # --- ADMIN PANEL SERIALIZERS ---
@@ -123,3 +125,14 @@ class EnrollmentRecordSerializer(serializers.ModelSerializer):
     class Meta:
         model = EnrollmentRecord
         fields = ['id', 'student', 'term', 'status', 'classes', 'date_created']
+
+class PaymentTransactionSerializer(serializers.ModelSerializer):
+    student_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PaymentTransaction
+        fields = ['id', 'student', 'student_name', 'reference_no', 'amount', 'method', 'date_paid']
+
+    def get_student_name(self, obj):
+        return f"{obj.student.user.first_name} {obj.student.user.last_name}"
+

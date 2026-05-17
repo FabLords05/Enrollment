@@ -1,37 +1,87 @@
 /**
- * CashierPaymentsPage.tsx  ─  ADD-ONLY
+ * CashierPaymentsPage.tsx  ─  BACKEND CONNECTED
  * Drop into: frontend/src/pages/cashier/CashierPaymentsPage.tsx
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../../api/axiosSetup';
 
-const pendingPayments = [
-  { id: 1, studentId: '2023-00121', name: 'Maria Santos',    course: 'BSCS',  balance: 11450, due: 'Jul 30' },
-  { id: 2, studentId: '2023-00145', name: 'Jose Reyes',      course: 'BSEE',  balance: 9800,  due: 'Jul 30' },
-  { id: 3, studentId: '2023-00089', name: 'Ana Cruz',        course: 'BSME',  balance: 13200, due: 'Jul 30' },
-  { id: 4, studentId: '2023-00200', name: 'Mark Tan',        course: 'BSCS',  balance: 6750,  due: 'Jul 30' },
-  { id: 5, studentId: '2022-00311', name: 'Liza Flores',     course: 'BSBA',  balance: 8400,  due: 'Jul 30' },
-  { id: 6, studentId: '2022-00298', name: 'Carlo Mendez',    course: 'BSCE',  balance: 12000, due: 'Jul 30' },
-];
+interface Student {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  enrollment_status: string;
+  section: number | null;
+  program_enrolled: string;
+}
 
-function fmt(n: number) { return '₱' + n.toLocaleString(); }
+interface Subject {
+  id: number;
+  secId: number;
+  units: number;
+}
 
 export default function CashierPaymentsPage() {
+  const [students, setStudents] = useState<Student[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState<number | null>(null);
+  
+  // Form State
+  const [selected, setSelected] = useState<Student | null>(null);
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState('Cash');
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [studentsRes, subjectsRes] = await Promise.all([
+        api.get<Student[]>('students/'),
+        api.get<Subject[]>('subjects/')
+      ]);
+      setStudents(studentsRes.data);
+      setSubjects(subjectsRes.data);
+    } catch (error) {
+      console.error("Error fetching payment data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateBalance = (sectionId: number | null) => {
+    if (!sectionId) return 0;
+    const enrolledSubjects = subjects.filter(sub => sub.secId === sectionId);
+    const units = enrolledSubjects.reduce((sum, sub) => sum + sub.units, 0);
+    return (units * 400) + 3550; // Tuition + Fixed Fees
+  };
+
+  const handlePost = async () => {
+    if (!selected) return;
+    
+    try {
+      await api.patch(`students/${selected.id}/`, { enrollment_status: 'ENROLLED' });
+      alert(`✅ Payment of ₱${Number(amount).toLocaleString()} posted for ${selected.first_name} via ${method}.`);
+      setSelected(null);
+      setAmount('');
+      fetchData(); // Refresh list to remove from queue
+    } catch (error) {
+      console.error("Failed to post payment", error);
+      alert("Failed to process payment. Check connection.");
+    }
+  };
+
+  const pendingPayments = students.filter(s => s.enrollment_status === 'ASSESSED');
   const filtered = pendingPayments.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.studentId.includes(search)
+    `${p.first_name} ${p.last_name} ${p.email}`.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handlePost = () => {
-    alert(`✅ Payment of ${fmt(Number(amount))} posted for student ID ${selected} via ${method}.`);
-    setSelected(null);
-    setAmount('');
-  };
+  const fmt = (n: number) => '₱' + n.toLocaleString();
+
+  if (loading) return <div className="p-10 text-center text-gray-400 font-medium animate-pulse">Loading Payments System...</div>;
 
   return (
     <div className="space-y-5">
@@ -39,11 +89,11 @@ export default function CashierPaymentsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h3 className="text-[15px] font-bold text-ustpDarkBlue">Pending Payments</h3>
-          <p className="text-[12px] text-gray-400">{filtered.length} students with outstanding balance</p>
+          <p className="text-[12px] text-gray-400">{filtered.length} students awaiting payment</p>
         </div>
         <input
           type="text"
-          placeholder="Search name or ID…"
+          placeholder="Search name or email…"
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 w-full sm:w-56 focus:outline-none focus:ring-2 focus:ring-ustpBlue/30"
@@ -57,30 +107,36 @@ export default function CashierPaymentsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 text-left text-[11px] text-gray-400 font-semibold uppercase tracking-wider">
-                  <th className="px-5 py-3">Student ID</th>
-                  <th className="px-5 py-3">Name</th>
-                  <th className="px-5 py-3">Course</th>
+                  <th className="px-5 py-3">Student Name</th>
+                  <th className="px-5 py-3">Program</th>
                   <th className="px-5 py-3 text-right">Balance</th>
                   <th className="px-5 py-3 text-center">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(p => (
-                  <tr key={p.id} className={`border-t border-gray-100 transition-colors ${selected === p.id ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                    <td className="px-5 py-3 font-mono text-[12px] text-ustpBlue">{p.studentId}</td>
-                    <td className="px-5 py-3 text-gray-700 font-medium">{p.name}</td>
-                    <td className="px-5 py-3 text-gray-500">{p.course}</td>
-                    <td className="px-5 py-3 text-right font-bold text-red-500">{fmt(p.balance)}</td>
-                    <td className="px-5 py-3 text-center">
-                      <button
-                        onClick={() => { setSelected(p.id); setAmount(String(p.balance)); }}
-                        className="text-[11px] bg-ustpDarkBlue text-white px-3 py-1 rounded-lg hover:bg-ustpBlue transition-colors font-semibold"
-                      >
-                        Post Payment
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {filtered.map(p => {
+                  const balance = calculateBalance(p.section);
+                  return (
+                    <tr key={p.id} className={`border-t border-gray-100 transition-colors ${selected?.id === p.id ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                      <td className="px-5 py-3 text-gray-700 font-medium">{p.last_name}, {p.first_name}</td>
+                      <td className="px-5 py-3 text-gray-500">{p.program_enrolled || 'N/A'}</td>
+                      <td className="px-5 py-3 text-right font-bold text-red-500">{fmt(balance)}</td>
+                      <td className="px-5 py-3 text-center">
+                        <button
+                          onClick={() => { setSelected(p); setAmount(String(balance)); }}
+                          className="text-[11px] bg-ustpDarkBlue text-white px-3 py-1 rounded-lg hover:bg-ustpBlue transition-colors font-semibold"
+                        >
+                          Select
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+                {filtered.length === 0 && (
+                    <tr>
+                        <td colSpan={4} className="px-5 py-10 text-center text-gray-400">No pending assessments.</td>
+                    </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -94,14 +150,14 @@ export default function CashierPaymentsPage() {
               <div>
                 <div className="text-[11px] text-gray-400 font-semibold mb-1">Student</div>
                 <div className="text-[13px] font-bold text-gray-800">
-                  {pendingPayments.find(p => p.id === selected)?.name}
+                  {selected.first_name} {selected.last_name}
                 </div>
                 <div className="text-[11px] text-gray-400">
-                  Balance: <span className="text-red-500 font-bold">{fmt(pendingPayments.find(p => p.id === selected)?.balance ?? 0)}</span>
+                  Total Due: <span className="text-red-500 font-bold">{fmt(calculateBalance(selected.section))}</span>
                 </div>
               </div>
               <div>
-                <label className="block text-[11px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Amount (₱)</label>
+                <label className="block text-[11px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Amount to Pay (₱)</label>
                 <input
                   type="number"
                   value={amount}

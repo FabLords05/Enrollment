@@ -1,27 +1,25 @@
 /**
- * StudentSchedulePage.tsx  ─  BACKEND CONNECTED
+ * StudentSchedulePage.tsx  ─  BACKEND LOCKED
  * Drop into: frontend/src/pages/student/StudentSchedulePage.tsx
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import api from '../../api/axiosSetup';
+import { AuthContext } from '../../context/AuthContext';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const TIMES = ['7:00', '8:00', '9:00', '10:00', '11:00', '12:00', '1:00', '2:00', '3:00', '4:00', '5:00'];
 
 const GRID_START = 7;
 const GRID_END   = 18;
-const SLOT_H     = 56; // px per hour
+const SLOT_H     = 56; 
 
-// A palette of Tailwind classes to cycle through for subjects
 const COLORS = [
   'bg-blue-100 border-blue-300 text-blue-800',
   'bg-purple-100 border-purple-300 text-purple-800',
   'bg-green-100 border-green-300 text-green-800',
   'bg-orange-100 border-orange-300 text-orange-800',
   'bg-teal-100 border-teal-300 text-teal-800',
-  'bg-red-100 border-red-300 text-red-800',
-  'bg-yellow-100 border-yellow-300 text-yellow-800',
 ];
 
 interface SubjectResponse {
@@ -31,6 +29,7 @@ interface SubjectResponse {
   st: string;
   et: string;
   room: string;
+  secId: number;
 }
 
 interface ScheduleEntry {
@@ -43,29 +42,21 @@ interface ScheduleEntry {
   color: string;
 }
 
-// Helper to convert "07:30 AM" to 7.5
 function timeStrToDecimal(timeStr: string): number {
   if (!timeStr) return 7; 
   const [time, period] = timeStr.trim().split(' ');
   if (!time) return 7;
-  
   let [hours, minutes] = time.split(':').map(Number);
-  
   if (period?.toUpperCase() === 'PM' && hours !== 12) hours += 12;
   if (period?.toUpperCase() === 'AM' && hours === 12) hours = 0;
-  
   return hours + (minutes / 60);
 }
 
-// Helper to convert "MWF" or "TTh" to ['Mon', 'Wed', 'Fri']
 function parseDays(daysStr: string): string[] {
   if (!daysStr) return [];
   const d = daysStr.toUpperCase();
-  
   if (d === 'MWF') return ['Mon', 'Wed', 'Fri'];
   if (d === 'TTH') return ['Tue', 'Thu'];
-  
-  // Fallbacks for individual days
   const days: string[] = [];
   if (d.includes('M')) days.push('Mon');
   if (d.includes('TUE') || (d.includes('T') && !d.includes('TH') && !d.includes('SAT'))) days.push('Tue');
@@ -73,42 +64,54 @@ function parseDays(daysStr: string): string[] {
   if (d.includes('TH')) days.push('Thu');
   if (d.includes('F')) days.push('Fri');
   if (d.includes('SAT')) days.push('Sat');
-  
   return days;
 }
 
 export default function StudentSchedulePage() {
+  const { user } = useContext(AuthContext) || {};
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [schedule, setSchedule] = useState<ScheduleEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchSchedule();
-  }, []);
+    if (user?.email) {
+      fetchSchedule();
+    }
+  }, [user]);
 
   const fetchSchedule = async () => {
     try {
-      const response = await api.get<SubjectResponse[]>('subjects/');
-      
-      const mappedSchedule = response.data.map((subj, index) => {
-        const parts = subj.nm.split(' - ');
-        const code = parts[0];
-        const name = parts[1] || subj.nm;
-        
-        return {
-          code,
-          name,
-          days: parseDays(subj.days),
-          startHour: timeStrToDecimal(subj.st),
-          endHour: timeStrToDecimal(subj.et),
-          room: subj.room,
-          color: COLORS[index % COLORS.length]
-        };
-      });
+      const [studentsRes, subjectsRes] = await Promise.all([
+        api.get('students/'),
+        api.get<SubjectResponse[]>('subjects/')
+      ]);
 
-      setSchedule(mappedSchedule);
+      const myData = studentsRes.data.find((s: any) => s.email?.toLowerCase() === user?.email?.toLowerCase());
+
+      if (myData && myData.section) {
+        const mySectionSubjects = subjectsRes.data.filter(subj => subj.secId === myData.section);
+        
+        const mappedSchedule = mySectionSubjects.map((subj, index) => {
+          const parts = subj.nm.split(' - ');
+          const code = parts[0];
+          const name = parts[1] || subj.nm;
+          
+          return {
+            code,
+            name,
+            days: parseDays(subj.days),
+            startHour: timeStrToDecimal(subj.st),
+            endHour: timeStrToDecimal(subj.et),
+            room: subj.room || 'TBA',
+            color: COLORS[index % COLORS.length]
+          };
+        });
+        setSchedule(mappedSchedule);
+      } else {
+        setSchedule([]);
+      }
     } catch (err) {
-      console.error("Failed to load schedule from Django", err);
+      console.error("Failed to map schedule grid matrix:", err);
     } finally {
       setLoading(false);
     }
@@ -117,6 +120,13 @@ export default function StudentSchedulePage() {
   if (loading) {
     return <div className="p-10 text-center text-gray-400 font-medium animate-pulse">Loading block schedule...</div>;
   }
+
+  // Formatting helpers for rendering
+  const formatTime = (h: number, m: number) => {
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const hr12 = Math.floor(h) > 12 ? Math.floor(h) - 12 : (Math.floor(h) === 0 ? 12 : Math.floor(h));
+    return `${hr12}:${m === 0 ? '00' : (m < 10 ? '0' + m : m)} ${ampm}`;
+  };
 
   return (
     <div className="space-y-5">
@@ -141,7 +151,6 @@ export default function StudentSchedulePage() {
       </div>
 
       {view === 'list' ? (
-        /* ── List View ── */
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -155,30 +164,20 @@ export default function StudentSchedulePage() {
                 </tr>
               </thead>
               <tbody>
-                {schedule.map((s, i) => {
-                  const startMins = (s.startHour % 1) * 60;
-                  const endMins = (s.endHour % 1) * 60;
-                  const formatTime = (h: number, m: number) => {
-                    const ampm = h >= 12 ? 'PM' : 'AM';
-                    const hr12 = Math.floor(h) > 12 ? Math.floor(h) - 12 : (Math.floor(h) === 0 ? 12 : Math.floor(h));
-                    return `${hr12}:${m === 0 ? '00' : m} ${ampm}`;
-                  };
-
-                  return (
-                    <tr key={i} className="border-t border-gray-100 hover:bg-gray-50">
-                      <td className="px-5 py-3 font-mono text-[12px] font-bold text-ustpBlue">{s.code}</td>
-                      <td className="px-5 py-3 text-gray-700">{s.name}</td>
-                      <td className="px-5 py-3 text-gray-500">{s.days.join(', ')}</td>
-                      <td className="px-5 py-3 text-gray-500 whitespace-nowrap">
-                        {formatTime(s.startHour, startMins)} – {formatTime(s.endHour, endMins)}
-                      </td>
-                      <td className="px-5 py-3 text-gray-500">{s.room}</td>
-                    </tr>
-                  );
-                })}
+                {schedule.map((s, i) => (
+                  <tr key={i} className="border-t border-gray-100 hover:bg-gray-50">
+                    <td className="px-5 py-3 font-mono text-[12px] font-bold text-ustpBlue">{s.code}</td>
+                    <td className="px-5 py-3 text-gray-700">{s.name}</td>
+                    <td className="px-5 py-3 text-gray-500">{s.days.join(', ')}</td>
+                    <td className="px-5 py-3 text-gray-500 whitespace-nowrap">
+                      {formatTime(s.startHour, (s.startHour % 1) * 60)} – {formatTime(s.endHour, (s.endHour % 1) * 60)}
+                    </td>
+                    <td className="px-5 py-3 text-gray-500">{s.room}</td>
+                  </tr>
+                ))}
                 {schedule.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-5 py-8 text-center text-gray-400">No schedule assigned yet.</td>
+                    <td colSpan={5} className="px-5 py-8 text-center text-gray-400 italic">No schedules mapped out for your account section.</td>
                   </tr>
                 )}
               </tbody>
@@ -186,38 +185,24 @@ export default function StudentSchedulePage() {
           </div>
         </div>
       ) : (
-        /* ── Grid View ── */
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <div className="min-w-[640px]">
-              {/* Day headers */}
               <div className="grid border-b border-gray-100" style={{ gridTemplateColumns: '52px repeat(6, 1fr)' }}>
                 <div className="py-2 text-[10px] text-gray-300 text-center">Time</div>
                 {DAYS.map(d => (
                   <div key={d} className="py-2 text-[11px] font-bold text-ustpDarkBlue text-center border-l border-gray-100">{d}</div>
                 ))}
               </div>
-              {/* Time grid */}
               <div className="relative" style={{ height: (GRID_END - GRID_START) * SLOT_H }}>
-                {/* Hour lines */}
                 {TIMES.map((t, i) => (
-                  <div
-                    key={t}
-                    className="absolute left-0 right-0 border-t border-gray-100 flex items-start"
-                    style={{ top: i * SLOT_H }}
-                  >
+                  <div key={t} className="absolute left-0 right-0 border-t border-gray-100 flex items-start" style={{ top: i * SLOT_H }}>
                     <span className="w-[52px] text-[10px] text-gray-300 pl-2 pt-0.5 shrink-0">{t}</span>
                   </div>
                 ))}
-                {/* Day columns */}
                 {DAYS.map((day, di) => (
-                  <div
-                    key={day}
-                    className="absolute top-0 bottom-0 border-l border-gray-100"
-                    style={{ left: `calc(52px + ${di} * (100% - 52px) / 6)`, width: `calc((100% - 52px) / 6)` }}
-                  />
+                  <div key={day} className="absolute top-0 bottom-0 border-l border-gray-100" style={{ left: `calc(52px + ${di} * (100% - 52px) / 6)`, width: `calc((100% - 52px) / 6)` }} />
                 ))}
-                {/* Schedule blocks */}
                 {schedule.map((s) =>
                   s.days.map(day => {
                     const di = DAYS.indexOf(day);
@@ -227,11 +212,7 @@ export default function StudentSchedulePage() {
                     const colW   = `calc((100% - 52px) / 6)`;
                     const left   = `calc(52px + ${di} * ${colW})`;
                     return (
-                      <div
-                        key={`${s.code}-${day}`}
-                        className={`absolute rounded-lg border text-[10px] font-bold px-1.5 py-1 overflow-hidden ${s.color}`}
-                        style={{ top, height: height - 2, left, width: colW, boxSizing: 'border-box', paddingRight: 4 }}
-                      >
+                      <div key={`${s.code}-${day}`} className={`absolute rounded-lg border text-[10px] font-bold px-1.5 py-1 overflow-hidden ${s.color}`} style={{ top, height: height - 2, left, width: colW, boxSizing: 'border-box' }}>
                         <div className="truncate">{s.code}</div>
                         <div className="font-normal opacity-70 truncate">{s.room}</div>
                       </div>

@@ -4,6 +4,8 @@ from rest_framework.permissions import IsAuthenticated
 # Models and Serializers
 # Import from the local enrollment app
 from .models import EnrollmentRecord, EnrolledClass
+from .models import PaymentTransaction
+from .serializers import PaymentTransactionSerializer
 
 # Import from your other apps!
 from academics.models import Instructor, Subject
@@ -13,12 +15,12 @@ from accounts.models import StudentProfile, ChangeRequest
 from .serializers import (
     EnrollmentRecordSerializer, EnrolledClassSerializer, 
     SectionSerializer, InstructorSerializer, SubjectSerializer, 
-    StudentProfileSerializer, ChangeRequestSerializer
+    StudentProfileSerializer, ChangeRequestSerializer, PaymentTransactionSerializer
 )
 
 
 # Custom Permissions
-from accounts.permissions import IsStudent, IsRegistrar, IsAdminUserRole 
+from accounts.permissions import IsStudent, IsRegistrar, IsAdminUserRole, IsCashier
 
 # --- YOUR EXISTING SECURED VIEWS ---
 
@@ -27,7 +29,7 @@ class EnrollmentRecordViewSet(viewsets.ModelViewSet):
     serializer_class = EnrollmentRecordSerializer
     
     def get_permissions(self):
-        permission_classes = [IsAuthenticated, IsAdminUserRole | IsStudent | IsRegistrar]
+        permission_classes = [IsAuthenticated, IsAdminUserRole | IsStudent | IsRegistrar | IsCashier]  # Add IsCashier if you want them to see transactions too!
         return [permission() for permission in permission_classes]
 
     def get_queryset(self):
@@ -38,7 +40,7 @@ class EnrollmentRecordViewSet(viewsets.ModelViewSet):
 class EnrolledClassViewSet(viewsets.ModelViewSet):
     queryset = EnrolledClass.objects.all()
     serializer_class = EnrolledClassSerializer
-    permission_classes = [IsAuthenticated, IsAdminUserRole | IsStudent | IsRegistrar]
+    permission_classes = [IsAuthenticated, IsAdminUserRole | IsStudent | IsRegistrar | IsCashier]
 
 # --- THE NEW PHASE 7 VIEWS (Add RBAC here too if you want!) ---
 
@@ -46,12 +48,12 @@ class SectionViewSet(viewsets.ModelViewSet):
     queryset = Section.objects.all()
     serializer_class = SectionSerializer
     # Example: Only Admins and Registrars can mess with sections!
-    permission_classes = [IsAuthenticated, IsAdminUserRole | IsRegistrar | IsStudent]  # You can adjust this as needed
+    permission_classes = [IsAuthenticated, IsAdminUserRole | IsRegistrar | IsStudent | IsCashier]  # You can adjust this as needed
 
 class InstructorViewSet(viewsets.ModelViewSet):
     queryset = Instructor.objects.all()
     serializer_class = InstructorSerializer
-    permission_classes = [IsAuthenticated, IsAdminUserRole | IsRegistrar | IsStudent]  # Adjust as needed
+    permission_classes = [IsAuthenticated, IsAdminUserRole | IsRegistrar | IsStudent | IsCashier]  # Adjust as needed
 
 class SubjectViewSet(viewsets.ModelViewSet):
     queryset = Subject.objects.all()
@@ -77,10 +79,15 @@ class SubjectViewSet(viewsets.ModelViewSet):
 class StudentProfileViewSet(viewsets.ModelViewSet):
     queryset = StudentProfile.objects.all()
     serializer_class = StudentProfileSerializer
-    permission_classes = [IsAuthenticated, IsAdminUserRole | IsRegistrar | IsStudent]
+    permission_classes = [IsAuthenticated, IsAdminUserRole | IsRegistrar | IsStudent | IsCashier]  # Adjust as needed
 
 class ChangeRequestViewSet(viewsets.ModelViewSet):
     queryset = ChangeRequest.objects.all()
     serializer_class = ChangeRequestSerializer
     # Everyone needs access to requests (Students to make them, Admins to approve them)
-    permission_classes = [IsAuthenticated, IsAdminUserRole | IsStudent | IsRegistrar]
+    permission_classes = [IsAuthenticated, IsAdminUserRole | IsStudent | IsRegistrar | IsCashier]
+
+class PaymentTransactionViewSet(viewsets.ModelViewSet):
+    queryset = PaymentTransaction.objects.all().order_by('-date_paid')
+    serializer_class = PaymentTransactionSerializer
+    permission_classes = [IsAuthenticated, IsAdminUserRole | IsCashier] # Add IsCashier to your permissions if you have it!

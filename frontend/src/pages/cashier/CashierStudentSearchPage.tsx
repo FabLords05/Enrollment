@@ -1,40 +1,86 @@
 /**
- * CashierStudentSearchPage.tsx  ─  ADD-ONLY
+ * CashierStudentSearchPage.tsx  ─  BACKEND CONNECTED
  * Drop into: frontend/src/pages/cashier/CashierStudentSearchPage.tsx
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../../api/axiosSetup';
 import Icon from '../../components/ui/Icon';
 
-const allStudents = [
-  { id: '2023-00121', name: 'Maria Santos',    course: 'BSCS 2-A', balance: 11450, status: 'Unpaid'  },
-  { id: '2023-00145', name: 'Jose Reyes',      course: 'BSEE 1-B', balance: 0,     status: 'Paid'    },
-  { id: '2023-00089', name: 'Ana Cruz',        course: 'BSME 3-A', balance: 13200, status: 'Unpaid'  },
-  { id: '2023-00200', name: 'Mark Tan',        course: 'BSCS 1-A', balance: 6750,  status: 'Partial' },
-  { id: '2022-00311', name: 'Liza Flores',     course: 'BSBA 4-B', balance: 8400,  status: 'Unpaid'  },
-  { id: '2022-00298', name: 'Carlo Mendez',    course: 'BSCE 2-A', balance: 0,     status: 'Paid'    },
-  { id: '2024-00019', name: 'Rachel Go',       course: 'BSCS 1-C', balance: 12450, status: 'Unpaid'  },
-  { id: '2021-00411', name: 'Daniel Ocampo',   course: 'BSIT 4-A', balance: 0,     status: 'Paid'    },
-];
+interface Student {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  program_enrolled: string;
+  year_level: string;
+  enrollment_status: string;
+  section: number | null;
+}
 
-function fmt(n: number) { return n === 0 ? '—' : '₱' + n.toLocaleString(); }
+interface Subject {
+  id: number;
+  secId: number;
+  units: number;
+}
 
 export default function CashierStudentSearchPage() {
+  const [students, setStudents] = useState<Student[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<'All'|'Paid'|'Unpaid'|'Partial'>('All');
+  const [filter, setFilter] = useState<'all' | 'ENROLLED' | 'ASSESSED' | 'ADVISING'>('all');
+  const [loading, setLoading] = useState(true);
 
-  const results = allStudents.filter(s => {
-    const matchQ = s.name.toLowerCase().includes(query.toLowerCase()) || s.id.includes(query);
-    const matchF = filter === 'All' || s.status === filter;
-    return matchQ && matchF;
+  useEffect(() => {
+    fetchSearchData();
+  }, []);
+
+  const fetchSearchData = async () => {
+    try {
+      const [studentsRes, subjectsRes] = await Promise.all([
+        api.get<Student[]>('students/'),
+        api.get<Subject[]>('subjects/')
+      ]);
+      setStudents(studentsRes.data);
+      setSubjects(subjectsRes.data);
+    } catch (error) {
+      console.error("Error running cashier search fetch:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper to calculate exact financial balance based on assigned block section load
+  const calculateBalance = (student: Student) => {
+    if (student.enrollment_status !== 'ASSESSED' && student.enrollment_status !== 'ADVISING') {
+      return 0; // If they already paid/enrolled, active remaining balance is cleared
+    }
+    if (!student.section) return 0;
+
+    const enrolledSubjects = subjects.filter(sub => sub.secId === student.section);
+    const units = enrolledSubjects.reduce((sum, sub) => sum + sub.units, 0);
+    const tuition = units * 400; // ₱400 per unit rate
+    const fixedFees = 1500 + 1200 + 350 + 500 + 500; // Misc, Lab, NSTP, Fund, Reg
+    return tuition + fixedFees;
+  };
+
+  const results = students.filter(s => {
+    const fullName = `${s.first_name || ''} ${s.last_name || ''} ${s.email || ''}`.toLowerCase();
+    const matchesQuery = fullName.includes(query.toLowerCase()) || s.id.toString() === query;
+    const matchesFilter = filter === 'all' || s.enrollment_status === filter;
+    return matchesQuery && matchesFilter;
   });
+
+  const fmt = (n: number) => n === 0 ? '—' : '₱' + n.toLocaleString();
+
+  if (loading) return <div className="p-10 text-center text-gray-400 font-medium animate-pulse">Warming up search ledger...</div>;
 
   return (
     <div className="space-y-5">
 
-      {/* Search bar */}
+      {/* Search Console Header */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-        <h3 className="text-[15px] font-bold text-ustpDarkBlue mb-3">Student Search</h3>
+        <h3 className="text-[15px] font-bold text-ustpDarkBlue mb-3">Student Master Financial Search</h3>
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none">
@@ -42,67 +88,72 @@ export default function CashierStudentSearchPage() {
             </div>
             <input
               type="text"
-              placeholder="Search by name or student ID…"
+              placeholder="Search by student name, email, or profile ID number..."
               value={query}
               onChange={e => setQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ustpBlue/30"
+              className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ustpBlue/30 text-gray-700"
             />
           </div>
-          <div className="flex gap-1.5">
-            {(['All','Paid','Unpaid','Partial'] as const).map(f => (
+          <div className="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            {(['all', 'ASSESSED', 'ENROLLED', 'ADVISING'] as const).map(f => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-3 py-2 rounded-lg text-[12px] font-semibold transition-colors ${
+                className={`px-3 py-2 rounded-lg text-[12px] font-semibold transition-colors uppercase whitespace-nowrap ${
                   filter === f
                     ? 'bg-ustpDarkBlue text-white'
                     : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                 }`}
               >
-                {f}
+                {f === 'all' ? 'Show All' : f}
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Results */}
+      {/* Results Table Ecosystem */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b border-gray-100 text-[12px] text-gray-400">
-          {results.length} result{results.length !== 1 && 's'} found
+        <div className="px-5 py-3 border-b border-gray-100 text-[12px] text-gray-400 font-medium">
+          {results.length} result{results.length !== 1 && 's'} found matching current profile filters
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 text-left text-[11px] text-gray-400 font-semibold uppercase tracking-wider">
-                <th className="px-5 py-3">Student ID</th>
-                <th className="px-5 py-3">Name</th>
-                <th className="px-5 py-3">Course/Section</th>
-                <th className="px-5 py-3 text-right">Balance</th>
-                <th className="px-5 py-3 text-center">Status</th>
+                <th className="px-5 py-3">DB ID</th>
+                <th className="px-5 py-3">Student Name</th>
+                <th className="px-5 py-3">Program & Year</th>
+                <th className="px-5 py-3 text-right">Outstanding Balance</th>
+                <th className="px-5 py-3 text-center">Lifecycle Status</th>
               </tr>
             </thead>
             <tbody>
-              {results.map(s => (
-                <tr key={s.id} className="border-t border-gray-100 hover:bg-gray-50">
-                  <td className="px-5 py-3 font-mono text-[12px] text-ustpBlue">{s.id}</td>
-                  <td className="px-5 py-3 text-gray-700 font-medium">{s.name}</td>
-                  <td className="px-5 py-3 text-gray-500">{s.course}</td>
-                  <td className={`px-5 py-3 text-right font-bold ${s.balance > 0 ? 'text-red-500' : 'text-gray-400'}`}>
-                    {fmt(s.balance)}
-                  </td>
-                  <td className="px-5 py-3 text-center">
-                    <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold ${
-                      s.status === 'Paid'    ? 'bg-emerald-50 text-emerald-600' :
-                      s.status === 'Partial' ? 'bg-yellow-50 text-yellow-600'  :
-                                               'bg-red-50 text-red-500'
-                    }`}>{s.status}</span>
-                  </td>
-                </tr>
-              ))}
+              {results.map(s => {
+                const balance = calculateBalance(s);
+                return (
+                  <tr key={s.id} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td className="px-5 py-3 font-mono text-[12px] text-ustpBlue font-bold">#{s.id}</td>
+                    <td className="px-5 py-3 text-gray-700 font-semibold">{s.last_name || 'N/A'}, {s.first_name || 'N/A'}</td>
+                    <td className="px-5 py-3 text-gray-500 text-[13px]">{s.program_enrolled || 'Unset'} (Year {s.year_level || '1'})</td>
+                    <td className={`px-5 py-3 text-right font-mono font-bold ${balance > 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                      {fmt(balance)}
+                    </td>
+                    <td className="px-5 py-3 text-center">
+                      <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-bold tracking-wide ${
+                        s.enrollment_status === 'ENROLLED' ? 'bg-emerald-50 text-emerald-600' :
+                        s.enrollment_status === 'ASSESSED' ? 'bg-purple-50 text-purple-600' :
+                        'bg-yellow-50 text-yellow-600'
+                      }`}>{s.enrollment_status}</span>
+                    </td>
+                  </tr>
+                );
+              })}
               {results.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center text-gray-300 text-sm">No students match your search.</td>
+                  <td colSpan={5} className="px-5 py-10 text-center text-gray-300 italic text-sm">
+                    No active student profiles found matching those console search criteria.
+                  </td>
                 </tr>
               )}
             </tbody>

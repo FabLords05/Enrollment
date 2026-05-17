@@ -1,7 +1,9 @@
 import { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { AuthContext } from './context/AuthContext';
+
+// 1. 🟢 IMPORT YOUR CUSTOM API INSTEAD OF RAW AXIOS
+import api from './api/axiosSetup'; // <-- Adjust this path if your folder structure is different
+import { AuthContext } from './context/AuthContext'; // <-- Adjust path if needed
 import { jwtDecode } from 'jwt-decode';
 
 export default function Login() {
@@ -15,7 +17,8 @@ export default function Login() {
         e.preventDefault();
         setError('');
         try {
-            const response = await axios.post('http://localhost:8000/api/token/', { email, password });
+            // 2. 🟢 USE 'api.post' AND REMOVE LOCALHOST
+            const response = await api.post('token/', { email, password });
             const { access, refresh } = response.data;
             
             // Log the user into the global React state
@@ -31,6 +34,8 @@ export default function Login() {
             else if (role === 'ADMIN') navigate('/admin');
 
         } catch (err) {
+            // Optional: If you want to see the exact error on your phone, you can uncomment the next line:
+            // alert("Login Error: " + err.message);
             setError('Invalid credentials. Please try again.');
         }
     };

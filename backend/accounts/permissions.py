@@ -12,3 +12,10 @@ class IsStudent(BasePermission):
 class IsRegistrar(BasePermission):
     def has_permission(self, request, view):
         return bool(request.user and request.user.role == 'REGISTRAR')
+    
+class IsCashier(BasePermission):
+    """
+    Allows access only to users with the CASHIER role.
+    """
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated and request.user.role == 'CASHIER')

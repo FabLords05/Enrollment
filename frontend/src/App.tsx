@@ -2,13 +2,30 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useContext } from 'react';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import { ProtectedRoute } from './ProtectedRoute';
+
+// --- IMPORT YOUR AUTH & GLOBAL PAGES ---
 import Login from './Login';
 import AdminDashboard from './AdminDashboard';
 
-// Role Layouts
+// --- IMPORT ROLE LAYOUTS ---
 import StudentLayout from './layouts/StudentLayout';
 import CashierLayout from './layouts/CashierLayout';
 import RegistrarLayout from './layouts/RegistrarLayout';
+
+// --- IMPORT CASHIER PAGES ---
+import CashierDashboardPage from './pages/cashier/CashierDashboardPage';
+import CashierPaymentsPage from './pages/cashier/CashierPaymentsPage';
+import CashierStudentSearchPage from './pages/cashier/CashierStudentSearchPage';
+import CashierTransactionsPage from './pages/cashier/CashierTransactionsPage';
+import CashierProfilePage from './pages/cashier/CashierProfilePage';
+
+// --- IMPORT REGISTRAR PAGES ---
+import RegistrarDashboardPage from './pages/registrar/RegistrarDashboardPage';
+import RegistrarEnrollmentApprovalPage from './pages/registrar/RegistrarEnrollmentApprovalPage';
+import RegistrarStudentRecordsPage from './pages/registrar/RegistrarStudentRecordsPage';
+import RegistrarSectionsPage from './pages/registrar/RegistrarSectionsPage';
+import RegistrarReportsPage from './pages/registrar/RegistrarReportsPage';
+import RegistrarProfilePage from './pages/registrar/RegistrarProfilePage';
 
 const Unauthorized = () => (
   <div className="p-10 text-2xl font-bold text-red-500">🚫 Access Denied</div>
@@ -48,12 +65,27 @@ function App() {
 
           {/* Cashier Sub-Routes Namespace */}
           <Route element={<ProtectedRoute allowedRoles={['CASHIER']} />}>
-            <Route path="/cashier/*" element={<CashierLayout />} />
+            {/* Remove the /* and nest the routes inside the layout */}
+            <Route path="/cashier" element={<CashierLayout />}>
+              <Route index element={<CashierDashboardPage />} />
+              <Route path="payments" element={<CashierPaymentsPage />} />
+              <Route path="search" element={<CashierStudentSearchPage />} />
+              <Route path="transactions" element={<CashierTransactionsPage />} />
+              <Route path="profile" element={<CashierProfilePage />} />
+            </Route>
           </Route>
 
           {/* Registrar Sub-Routes Namespace */}
           <Route element={<ProtectedRoute allowedRoles={['REGISTRAR']} />}>
-            <Route path="/registrar/*" element={<RegistrarLayout />} />
+             {/* Remove the /* and nest the routes inside the layout */}
+            <Route path="/registrar" element={<RegistrarLayout />}>
+              <Route index element={<RegistrarDashboardPage />} />
+              <Route path="approvals" element={<RegistrarEnrollmentApprovalPage />} />
+              <Route path="students" element={<RegistrarStudentRecordsPage />} />
+              <Route path="sections" element={<RegistrarSectionsPage />} />
+              <Route path="reports" element={<RegistrarReportsPage />} />
+              <Route path="profile" element={<RegistrarProfilePage />} />
+            </Route>
           </Route>
 
           {/* Admin Dashboard Control Center */}

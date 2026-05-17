@@ -1,39 +1,80 @@
 /**
- * RegistrarStudentRecordsPage.tsx  ─  ADD-ONLY
+ * RegistrarStudentRecordsPage.tsx  ─  BACKEND ALIGNED
  * Drop into: frontend/src/pages/registrar/RegistrarStudentRecordsPage.tsx
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../../api/axiosSetup';
 import Icon from '../../components/ui/Icon';
 
-const students = [
-  { id: '2023-00121', name: 'Maria Santos',   course: 'BSCS', year: 2, section: 'A', status: 'Regular',   gwa: '1.75' },
-  { id: '2023-00145', name: 'Jose Reyes',     course: 'BSEE', year: 1, section: 'B', status: 'Regular',   gwa: '2.00' },
-  { id: '2023-00089', name: 'Ana Cruz',       course: 'BSME', year: 3, section: 'A', status: 'Irregular', gwa: '2.25' },
-  { id: '2023-00200', name: 'Mark Tan',       course: 'BSCS', year: 1, section: 'A', status: 'Regular',   gwa: '1.50' },
-  { id: '2022-00311', name: 'Liza Flores',    course: 'BSBA', year: 4, section: 'B', status: 'Irregular', gwa: '2.50' },
-  { id: '2022-00298', name: 'Carlo Mendez',   course: 'BSCE', year: 2, section: 'A', status: 'Regular',   gwa: '1.75' },
-  { id: '2024-00019', name: 'Rachel Go',      course: 'BSCS', year: 1, section: 'C', status: 'Regular',   gwa: '—'    },
-  { id: '2021-00411', name: 'Daniel Ocampo',  course: 'BSIT', year: 4, section: 'A', status: 'Regular',   gwa: '1.90' },
-];
+interface Student {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  program_enrolled: string;
+  year_level: number;
+  enrollment_status: string;
+  section: number | null;
+}
+
+// 1. 🟢 UPDATED INTERFACE TO EXPECT 'name' FROM DJANGO
+interface Section {
+  id: number;
+  name: string; // Changed from nm to name to match Django model structure
+  nm?: string;  // Temporary fallback during data migrations
+}
 
 export default function RegistrarStudentRecordsPage() {
+  const [students, setStudents] = useState<Student[]>([]);
+  const [sections, setSections] = useState<Section[]>([]);
   const [query, setQuery] = useState('');
-  const [courseFilter, setCourseFilter] = useState('All');
+  const [loading, setLoading] = useState(true);
 
-  const courses = ['All', ...Array.from(new Set(students.map(s => s.course)))];
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [studentsRes, sectionsRes] = await Promise.all([
+        api.get<Student[]>('students/'),
+        api.get<Section[]>('sections/')
+      ]);
+      setStudents(studentsRes.data);
+      setSections(sectionsRes.data);
+    } catch (error) {
+      console.error("Error fetching records:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateStudentSection = async (studentId: number, newSectionId: string) => {
+    const sectionVal = newSectionId === "" ? null : Number(newSectionId);
+    try {
+      await api.patch(`students/${studentId}/`, { section: sectionVal });
+      alert("Student section updated successfully.");
+      fetchData(); // Refresh to show changes
+    } catch (error) {
+      console.error("Failed to update section", error);
+      alert("Failed to update section.");
+    }
+  };
+
   const filtered = students.filter(s => {
-    const matchQ = s.name.toLowerCase().includes(query.toLowerCase()) || s.id.includes(query);
-    const matchC = courseFilter === 'All' || s.course === courseFilter;
-    return matchQ && matchC;
+    const searchString = `${s.first_name || ''} ${s.last_name || ''} ${s.email || ''}`.toLowerCase();
+    return searchString.includes(query.toLowerCase());
   });
+
+  if (loading) return <div className="p-10 text-center text-gray-400 font-medium animate-pulse">Loading Student Records...</div>;
 
   return (
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h3 className="text-[15px] font-bold text-ustpDarkBlue">Student Records</h3>
-          <p className="text-[12px] text-gray-400">{filtered.length} of {students.length} students</p>
+          <h3 className="text-[15px] font-bold text-ustpDarkBlue">Student Masterlist</h3>
+          <p className="text-[12px] text-gray-400">{filtered.length} total students in system</p>
         </div>
         <div className="flex gap-2">
           <div className="relative">
@@ -42,19 +83,12 @@ export default function RegistrarStudentRecordsPage() {
             </div>
             <input
               type="text"
-              placeholder="Search…"
+              placeholder="Search by name/email…"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              className="pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ustpBlue/30 w-44"
+              className="pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ustpBlue/30 w-56"
             />
           </div>
-          <select
-            value={courseFilter}
-            onChange={e => setCourseFilter(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ustpBlue/30"
-          >
-            {courses.map(c => <option key={c}>{c}</option>)}
-          </select>
         </div>
       </div>
 
@@ -63,40 +97,46 @@ export default function RegistrarStudentRecordsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 text-left text-[11px] text-gray-400 font-semibold uppercase tracking-wider">
-                <th className="px-5 py-3">ID</th>
                 <th className="px-5 py-3">Name</th>
-                <th className="px-5 py-3">Course</th>
-                <th className="px-5 py-3">Year</th>
-                <th className="px-5 py-3">Section</th>
+                <th className="px-5 py-3">Email</th>
+                <th className="px-5 py-3">Program / Yr</th>
                 <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-center">GWA</th>
-                <th className="px-5 py-3 text-center">Actions</th>
+                <th className="px-5 py-3 text-center">Assign Section</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map(s => (
                 <tr key={s.id} className="border-t border-gray-100 hover:bg-gray-50">
-                  <td className="px-5 py-3 font-mono text-[12px] text-ustpBlue">{s.id}</td>
-                  <td className="px-5 py-3 text-gray-700 font-medium">{s.name}</td>
-                  <td className="px-5 py-3 text-gray-500">{s.course}</td>
-                  <td className="px-5 py-3 text-gray-500">{s.year}</td>
-                  <td className="px-5 py-3 text-gray-500">{s.section}</td>
+                  <td className="px-5 py-3 text-gray-700 font-medium">{s.last_name || 'N/A'}, {s.first_name || 'N/A'}</td>
+                  <td className="px-5 py-3 text-gray-500">{s.email}</td>
+                  <td className="px-5 py-3 text-gray-500">{s.program_enrolled || 'N/A'} (Yr {s.year_level})</td>
                   <td className="px-5 py-3">
                     <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${
-                      s.status === 'Regular' ? 'bg-blue-50 text-blue-600' : 'bg-yellow-50 text-yellow-600'
-                    }`}>{s.status}</span>
+                      s.enrollment_status === 'ENROLLED' ? 'bg-emerald-50 text-emerald-600' :
+                      s.enrollment_status === 'ASSESSED' ? 'bg-purple-50 text-purple-600' :
+                      'bg-yellow-50 text-yellow-600'
+                    }`}>{s.enrollment_status}</span>
                   </td>
-                  <td className="px-5 py-3 text-center font-bold text-gray-600">{s.gwa}</td>
                   <td className="px-5 py-3 text-center">
-                    <button className="text-[11px] bg-gray-100 text-gray-600 px-3 py-1 rounded-lg hover:bg-gray-200 transition-colors font-semibold">
-                      View
-                    </button>
+                    <select
+                      value={s.section || ""}
+                      onChange={(e) => updateStudentSection(s.id, e.target.value)}
+                      className="border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-ustpBlue/30 bg-white"
+                    >
+                      <option value="">Unassigned</option>
+                      {sections.map(sec => (
+                        <option key={sec.id} value={sec.id}>
+                          {/* 2. 🟢 UPDATED VALUE EXTRACTION TO SECURE MULTIPLE PROPERTIES */}
+                          {sec.name || sec.nm || `Section #${sec.id}`}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-5 py-10 text-center text-gray-300">No records found.</td>
+                  <td colSpan={5} className="px-5 py-10 text-center text-gray-300">No records found.</td>
                 </tr>
               )}
             </tbody>
