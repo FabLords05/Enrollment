@@ -1,0 +1,34 @@
+.
+├── eslint.config.js
+├── frontend.txt
+├── index.html
+├── package.json
+├── package-lock.json
+├── postcss.config.js
+├── public
+│   ├── favicon.svg
+│   └── icons.svg
+├── README.md
+├── src
+│   ├── AdminDashboard.tsx
+│   ├── api
+│   │   └── axiosSetup.ts
+│   ├── App.css
+│   ├── App.tsx
+│   ├── assets
+│   │   ├── hero.png
+│   │   ├── react.svg
+│   │   └── vite.svg
+│   ├── context
+│   │   └── AuthContext.tsx
+│   ├── index.css
+│   ├── Login.tsx
+│   ├── main.tsx
+│   └── ProtectedRoute.tsx
+├── tailwind.config.js
+├── tsconfig.app.json
+├── tsconfig.json
+├── tsconfig.node.json
+└── vite.config.ts
+
+6 directories, 26 files
