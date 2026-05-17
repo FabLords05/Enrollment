@@ -56,8 +56,24 @@ class InstructorViewSet(viewsets.ModelViewSet):
 class SubjectViewSet(viewsets.ModelViewSet):
     queryset = Subject.objects.all()
     serializer_class = SubjectSerializer
-    permission_classes = [IsAuthenticated, IsAdminUserRole | IsRegistrar | IsStudent]  # Adjust as needed
+    permission_classes = [IsAuthenticated, IsAdminUserRole | IsRegistrar | IsStudent]
 
+    def get_queryset(self):
+        user = self.request.user
+        
+        # 1. If the user is a STUDENT, strictly filter the subjects
+        if user.role == 'STUDENT':
+            # Check if they actually have a profile and a section assigned
+            if hasattr(user, 'student_profile') and user.student_profile.section_id:
+                # ONLY return subjects matching their specific section
+                return Subject.objects.filter(secId_id=user.student_profile.section_id)
+            
+            # If they don't have a section assigned yet, return an empty list
+            return Subject.objects.none()
+        
+        # 2. If the user is an ADMIN or REGISTRAR, let them see everything
+        return self.queryset
+    
 class StudentProfileViewSet(viewsets.ModelViewSet):
     queryset = StudentProfile.objects.all()
     serializer_class = StudentProfileSerializer
