@@ -1,6 +1,7 @@
 import React from 'react';
-import { Icon } from '../ui/Icon';
-import { Avatar } from '../ui/Avatar';
+import Avatar from '../ui/Avatar';
+import Icon from '../ui/Icon';
+import RequestsManager from '../admin/RequestsManager';
 
 interface AdminShellProps {
   onLogout: () => void;

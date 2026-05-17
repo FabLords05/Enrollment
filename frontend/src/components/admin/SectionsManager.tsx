@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Icon } from '../ui/Icon';
-import { Modal } from '../ui/Modal';
+import Icon from '../ui/Icon';
+import Modal  from '../ui/Modal';
 
 // Mock data to ensure the UI renders perfectly before you wire up Django
 const INITIAL_SECTIONS = [
@@ -9,7 +9,7 @@ const INITIAL_SECTIONS = [
   { id: 3, nm: 'BSCS-1A', prog: 'BS Computer Science', yr: 1, slots: 35, enrolled: 22 },
 ];
 
-export function SectionsManager() {
+export default function SectionsManager() {
   const [sections, setSections] = useState(INITIAL_SECTIONS);
   const [modalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState({ nm: '', prog: '', yr: 1, slots: 40 });

@@ -7,7 +7,7 @@ interface AvatarProps {
   gold?: boolean;
 }
 
-export function Avatar({ pic, init, size = 30, gold = false }: AvatarProps) {
+export default function Avatar({ pic, init, size = 30, gold = false }: AvatarProps) {
   const colorClasses = gold 
     ? 'bg-ustpGold text-ustpDarkBlue' 
     : 'bg-blue-100 text-ustpBlue';

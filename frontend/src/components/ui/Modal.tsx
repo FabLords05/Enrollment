@@ -1,5 +1,5 @@
 import React from 'react';
-import { Icon } from './Icon';
+import Icon from './Icon';
 
 interface ModalProps {
   title: string;
@@ -8,7 +8,7 @@ interface ModalProps {
   footer?: React.ReactNode;
 }
 
-export function Modal({ title, onClose, children, footer }: ModalProps) {
+export default function Modal({ title, onClose, children, footer }: ModalProps) {
   return (
     <div 
       className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-5"

@@ -6,7 +6,7 @@ interface IconProps {
   className?: string;
 }
 
-export function Icon({ name, size = 15, className = '' }: IconProps) {
+export default function Icon({ name, size = 15, className = '' }: IconProps) {
   const paths: Record<string, string> = {
     home: "M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2zM9 22V12h6v10",
     book: "M4 19.5A2.5 2.5 0 016.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z",
