@@ -1,22 +1,53 @@
-"""
-URL configuration for ems_backend project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+
+# 1. Import the SimpleJWT serializer and view
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
+# 2. Import ALL your viewsets (Old and New)
+from enrollment.views import (
+    EnrollmentRecordViewSet, 
+    EnrolledClassViewSet,
+    SectionViewSet, 
+    InstructorViewSet, 
+    SubjectViewSet, 
+    StudentProfileViewSet, 
+    ChangeRequestViewSet
+)
+
+# 3. Your custom serializer to inject the 'role'
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        # Add custom claims
+        token['role'] = user.role 
+        return token
+
+# 4. Your custom view that uses the new serializer
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+
+# 5. Register ALL endpoints to the router
+router = DefaultRouter()
+# Original endpoints
+router.register(r'enrollments', EnrollmentRecordViewSet, basename='enrollment')
+router.register(r'enrolled-classes', EnrolledClassViewSet, basename='enrolled-class')
+# New Phase 7 Admin Panel endpoints
+router.register(r'sections', SectionViewSet, basename='section')
+router.register(r'instructors', InstructorViewSet, basename='instructor')
+router.register(r'subjects', SubjectViewSet, basename='subject')
+router.register(r'students', StudentProfileViewSet, basename='student')
+router.register(r'requests', ChangeRequestViewSet, basename='request')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    
+    # 6. Point the login route to your Custom view!
+    path('api/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    
+    path('api/', include(router.urls)),
 ]
