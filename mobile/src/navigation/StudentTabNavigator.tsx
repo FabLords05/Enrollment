@@ -1,49 +1,102 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView } from 'react-native';
+/**
+ * StudentTabNavigator.tsx
+ * 
+ * Bottom tab navigation for Student role with 5 main screens:
+ * Dashboard → Finance → Schedule → Subjects → Profile
+ * 
+ * Mirrors the web StudentLayout structure with unified design system colors.
+ */
+
+import React from 'react';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/colors';
 
+// Import all student screens
 import StudentDashboardScreen from '../screens/student/StudentDashboardScreen';
-import StudentSubjectsScreen from '../screens/student/StudentSubjectsScreen';
-import StudentScheduleScreen from '../screens/student/StudentScheduleScreen';
 import StudentFinanceScreen from '../screens/student/StudentFinanceScreen';
+import StudentScheduleScreen from '../screens/student/StudentScheduleScreen';
+import StudentSubjectsScreen from '../screens/student/StudentSubjectsScreen';
 import StudentProfileScreen from '../screens/student/StudentProfileScreen';
 
+const Tab = createBottomTabNavigator();
+
 export default function StudentTabNavigator() {
-  const [activeTab, setActiveTab] = useState('dashboard');
-
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        {activeTab === 'dashboard' && <StudentDashboardScreen />}
-        {activeTab === 'subjects'  && <StudentSubjectsScreen />}
-        {activeTab === 'schedule'  && <StudentScheduleScreen />}
-        {activeTab === 'finance'   && <StudentFinanceScreen />}
-        {activeTab === 'profile'   && <StudentProfileScreen />}
-      </View>
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: COLORS.white,
+          borderTopWidth: 1,
+          borderTopColor: COLORS.border,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 4,
+        },
+        tabBarActiveTintColor: COLORS.ustpDarkBlue,
+        tabBarInactiveTintColor: COLORS.textLight,
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '600',
+        },
+      }}
+    >
+      <Tab.Screen
+        name="Dashboard"
+        component={StudentDashboardScreen}
+        options={{
+          tabBarLabel: 'Dashboard',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home" size={size} color={color} />
+          ),
+        }}
+      />
 
-      <View style={styles.tabTray}>
-        {['dashboard', 'subjects', 'schedule', 'finance', 'profile'].map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={[styles.tabItem, activeTab === tab && styles.tabItemActive]}
-            onPress={() => setActiveTab(tab)}
-          >
-            <Text style={[styles.tabLabel, activeTab === tab && styles.tabLabelActive]}>
-              {tab.charAt(0).toUpperCase() + tab.slice(1, 4)}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </SafeAreaView>
+      <Tab.Screen
+        name="Finance"
+        component={StudentFinanceScreen}
+        options={{
+          tabBarLabel: 'Finance',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="wallet" size={size} color={color} />
+          ),
+        }}
+      />
+
+      <Tab.Screen
+        name="Schedule"
+        component={StudentScheduleScreen}
+        options={{
+          tabBarLabel: 'Schedule',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar" size={size} color={color} />
+          ),
+        }}
+      />
+
+      <Tab.Screen
+        name="Subjects"
+        component={StudentSubjectsScreen}
+        options={{
+          tabBarLabel: 'Subjects',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="book" size={size} color={color} />
+          ),
+        }}
+      />
+
+      <Tab.Screen
+        name="Profile"
+        component={StudentProfileScreen}
+        options={{
+          tabBarLabel: 'Profile',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person" size={size} color={color} />
+          ),
+        }}
+      />
+    </Tab.Navigator>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
-  content: { flex: 1 },
-  tabTray: { flexDirection: 'row', backgroundColor: '#FFF', borderTopWidth: 1, borderColor: COLORS.border, height: 56, paddingBottom: 4 },
-  tabItem: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  tabItemActive: { borderTopWidth: 2, borderTopColor: COLORS.ustpBlue },
-  tabLabel: { fontSize: 11, fontWeight: '700', color: '#9CA3AF' },
-  tabLabelActive: { color: COLORS.ustpBlue }
-});
