@@ -20,13 +20,19 @@ interface Student {
 
 interface Subject {
   id: number;
-  secId: number;
   units: number;
+}
+
+interface Offering {
+  id: number;
+  subject: number;
+  section: number;
 }
 
 export default function CashierStudentSearchPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [offerings, setOfferings] = useState<Offering[]>([]);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'ENROLLED' | 'ASSESSED' | 'ADVISING'>('all');
   const [loading, setLoading] = useState(true);
