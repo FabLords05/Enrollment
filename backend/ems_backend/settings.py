@@ -25,7 +25,8 @@ SECRET_KEY = 'django-insecure-u0y)73n=7lh5_2i4!8gp%9nw@vv8h3dd!8)bwc%h2*_155etjp
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["*"] # Allow all hosts for development
+# backend/ems_backend/settings.py
+ALLOWED_HOSTS = ['*']  # For development only # Allow all hosts for development
 
 CORS_ALLOW_ALL_ORIGINS = True # Allow all origins for development
 
