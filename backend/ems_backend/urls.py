@@ -13,8 +13,8 @@ from accounts.views import ChangePasswordView
 
 # Rebrand the Django Admin interface to EduTrack
 admin.site.site_header = "EduTrack Admin Portal"
-admin.site.site_title = "EduTrack Portal"
-admin.site.index_title = "Welcome to EduTrack Infrastructure Management"
+admin.site.site_title = "EduTrack Admin Portal"
+admin.site.index_title = "EduTrack Admin Portal"
 
 # 2. Corrected Import Routes
 from enrollment.views import (

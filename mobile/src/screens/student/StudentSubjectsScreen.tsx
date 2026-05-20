@@ -81,6 +81,24 @@ export default function StudentSubjectsScreen() {
   const getInstructor = (id: number | null) =>
     instructors.find((i) => i.id === id)?.nm || 'TBA';
 
+  const formatTimeValue = (value?: string) => {
+    if (!value || value === 'TBA') return 'TBA';
+    const [hourStr, minuteStr] = value.split(':');
+    const hour = Number(hourStr);
+    if (Number.isNaN(hour) || !minuteStr) return value;
+    const minute = minuteStr.slice(0, 2);
+    const suffix = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+    return `${hour12}:${minute} ${suffix}`;
+  };
+
+  const formatSchedule = (start?: string, end?: string) => {
+    if (!start || start === 'TBA') return 'TBA';
+    const formattedStart = formatTimeValue(start);
+    const formattedEnd = end && end !== 'TBA' ? formatTimeValue(end) : '';
+    return formattedEnd ? `${formattedStart} - ${formattedEnd}` : formattedStart;
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -137,6 +155,7 @@ export default function StudentSubjectsScreen() {
             const endTime = o.end_time || o.et || 'TBA';
             const room = o.room || 'TBA';
             const instructor = getInstructor(o.instructor || null);
+            const timeLabel = formatSchedule(startTime, endTime);
             return (
               <View style={styles.card}>
                 <View style={styles.cardTop}>
@@ -157,7 +176,7 @@ export default function StudentSubjectsScreen() {
                   </View>
                   <View style={styles.detailRow}>
                     <Text style={styles.detailItem}>📅 {o.days || 'TBA'}</Text>
-                    <Text style={styles.detailItem}>🕐 {startTime} – {endTime}</Text>
+                    <Text style={styles.detailItem}>🕐 {timeLabel}</Text>
                   </View>
                   <Text style={styles.detailItem}>🏫 {room}</Text>
                 </View>
@@ -239,8 +258,8 @@ const styles = StyleSheet.create({
   enrolledText: { fontSize: 11, fontWeight: '700', color: Colors.emerald600 },
 
   cardDetails: { gap: 4 },
-  detailRow: { flexDirection: 'row', gap: 16 },
-  detailItem: { fontSize: 12, color: Colors.gray500 },
+  detailRow: { flexDirection: 'row', gap: 16, flexWrap: 'wrap' },
+  detailItem: { fontSize: 12, color: Colors.gray500, flexShrink: 1, minWidth: 0 },
 
   emptyBox: {
     flex: 1,

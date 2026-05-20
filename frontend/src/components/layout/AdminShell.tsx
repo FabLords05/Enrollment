@@ -35,7 +35,7 @@ export function AdminShell({
             EduTrack Portal
           </div>
           <div className="text-sm font-bold text-white leading-tight">Admin Portal</div>
-          <div className="text-[10px] text-white/45 mt-0.5">Enrollment Management System</div>
+          <div className="text-[10px] text-white/45 mt-0.5">EduTrack</div>
         </div>
 
         <div className="flex-1 overflow-y-auto py-2.5">

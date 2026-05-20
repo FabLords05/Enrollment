@@ -5,7 +5,7 @@
  * Displays enrollment status, financial balance, schedule, and curriculum load.
  */
 
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -17,6 +17,7 @@ import {
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../api/axiosSetup';
 import { COLORS } from '../../constants/colors';
+import { useFocusEffect } from '@react-navigation/native';
 
 interface StudentProfile {
   id: number;
@@ -77,20 +78,108 @@ export default function StudentDashboardScreen() {
   const [outstandingBalance, setOutstandingBalance] = useState(0);
   const [activeDaysCount, setActiveDaysCount] = useState(0);
 
-  useEffect(() => {
-    // Only fetch when auth state is settled and we have a user
-    if (!authLoading && user?.email) {
-      fetchDashboardData();
-    }
-  }, [authLoading, user]);
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      // Only fetch when auth state is settled and we have a user
+      const loadDashboardData = async () => {
+        if (authLoading || !user?.email) return;
+        try {
+          setLoading(true);
+          const [studentsRes, sectionsRes, offeringsRes, subjectsRes, assessmentsRes] = await Promise.all([
+            api.get<StudentProfile[]>('students/'),
+            api.get<Section[]>('sections/'),
+            api.get<Offering[]>('offerings/'),
+            api.get<SubjectMaster[]>('subjects/'),
+            api.get('assessments/'),
+          ]);
+
+          if (!isActive) return;
+
+          // Identify the logged-in student
+          const myData = studentsRes.data.find(
+            s => s.email?.toLowerCase() === user?.email?.toLowerCase()
+          );
+          if (!myData) {
+            if (isActive) setLoading(false);
+            return;
+          }
+          if (isActive) setProfile(myData);
+
+          // Resolve Section Name
+          if (myData.section) {
+            const sec = sectionsRes.data.find(s => s.id === myData.section);
+            if (sec && isActive) setSectionName(sec.name);
+          }
+
+          // Resolve Offerings linked to the student's section
+          const sectionOfferings = offeringsRes.data.filter(
+            off => off.section === myData.section
+          );
+          const enrolledSubjects = sectionOfferings.map(off => {
+            const subj = subjectsRes.data.find(s => s.id === off.subject);
+            return {
+              id: off.id,
+              code: off.subject_code || subj?.code || `SUBJ-${off.subject}`,
+              title: off.subject_title || subj?.title || subj?.name || 'Untitled Subject',
+              units: off.subject_units ?? subj?.units ?? 0,
+              days: off.days || '',
+            };
+          });
+          if (isActive) setMySubjects(enrolledSubjects);
+
+          const units = enrolledSubjects.reduce((sum, sub) => sum + sub.units, 0);
+          if (isActive) setTotalUnits(units);
+
+          // Use assessment record if present to compute outstanding balance
+          const myAssessment = assessmentsRes.data.find((a: any) => a.student_id === myData.id) || null;
+          if (myAssessment) {
+            if (isActive) setOutstandingBalance(Number(myAssessment.balance_due) || 0);
+          } else if (myData.enrollment_status === 'ASSESSED' || myData.enrollment_status === 'PAID') {
+            const tuition = units * 400;
+            const fixedFees = 3550; // Administrative + misc fees
+            if (isActive) setOutstandingBalance(tuition + fixedFees);
+          } else {
+            if (isActive) setOutstandingBalance(0);
+          }
+
+          // Calculate Unique Days active in schedule
+          const activeDays = new Set<string>();
+          enrolledSubjects.forEach(s => {
+            const d = (s.days || '').toUpperCase();
+            if (d.includes('M')) activeDays.add('Mon');
+            if (d.includes('T') && !d.includes('H')) activeDays.add('Tue');
+            if (d.includes('W')) activeDays.add('Wed');
+            if (d.includes('H')) activeDays.add('Thu');
+            if (d.includes('F')) activeDays.add('Fri');
+            if (d.includes('S')) activeDays.add('Sat');
+          });
+          if (isActive) setActiveDaysCount(activeDays.size);
+
+          if (isActive) setLoading(false);
+        } catch (error) {
+          console.error('Error fetching dashboard data:', error);
+          if (isActive) setLoading(false);
+        }
+      };
+
+      loadDashboardData();
+
+      return () => {
+        isActive = false;
+      };
+    }, [authLoading, user])
+  );
 
   const fetchDashboardData = async () => {
     try {
-      const [studentsRes, sectionsRes, offeringsRes, subjectsRes] = await Promise.all([
+      setLoading(true);
+      const [studentsRes, sectionsRes, offeringsRes, subjectsRes, assessmentsRes] = await Promise.all([
         api.get<StudentProfile[]>('students/'),
         api.get<Section[]>('sections/'),
         api.get<Offering[]>('offerings/'),
         api.get<SubjectMaster[]>('subjects/'),
+        api.get('assessments/'),
       ]);
 
       // Identify the logged-in student
@@ -128,8 +217,11 @@ export default function StudentDashboardScreen() {
       const units = enrolledSubjects.reduce((sum, sub) => sum + sub.units, 0);
       setTotalUnits(units);
 
-      // Calculate Financial Balance
-      if (myData.enrollment_status === 'ASSESSED' || myData.enrollment_status === 'PAID') {
+      // Use assessment record if present to compute outstanding balance
+      const myAssessment = assessmentsRes.data.find((a: any) => a.student_id === myData.id) || null;
+      if (myAssessment) {
+        setOutstandingBalance(Number(myAssessment.balance_due) || 0);
+      } else if (myData.enrollment_status === 'ASSESSED' || myData.enrollment_status === 'PAID') {
         const tuition = units * 400;
         const fixedFees = 3550; // Administrative + misc fees
         setOutstandingBalance(tuition + fixedFees);
